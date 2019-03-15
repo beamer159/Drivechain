@@ -1,15 +1,24 @@
 package us.wirsing.drivechain.node;
 
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import us.wirsing.drivechain.blockchain.Block;
 import us.wirsing.drivechain.blockchain.Blockchain;
 import us.wirsing.drivechain.blockchain.Hash;
 import us.wirsing.drivechain.blockchain.Transaction;
+import us.wirsing.drivechain.drive.CertificateAuthority;
 import us.wirsing.drivechain.util.Crypto;
 import us.wirsing.drivechain.util.Serialization;
 import us.wirsing.drivechain.util.TransactionTransfers;
 
 import java.security.KeyPair;
 import java.security.PublicKey;
+import java.security.cert.X509Certificate;
 import java.util.*;
 
 public class Node {
@@ -19,7 +28,8 @@ public class Node {
 	public static final byte PACKET_TYPE_BLOCKCHAIN = 2;
 
 	private String name;
-	private KeyPair key = Crypto.generateKey();
+	private KeyPair keyPair = Crypto.generateKey();
+	private X509Certificate certNode;
 	private List<Node> cxns = new ArrayList<>();
 	private Blockchain blockchain = new Blockchain();
 	Block block = new Block(blockchain.tip.hash);
@@ -27,14 +37,19 @@ public class Node {
 
 	// Constructors
 
-	public Node(String name) {
+	public Node(String name, CertificateAuthority ca) {
 		this.name = name;
+		this.certNode = ca.issueCertificate(generateCsr());
 	}
 
 	// Information Gathering Methods
 
 	public String getName() {
 		return name;
+	}
+
+	public X509Certificate getCertificate() {
+		return certNode;
 	}
 
 	/**
@@ -143,7 +158,7 @@ public class Node {
 	}
 
 	public PublicKey publicKey() {
-		return key.getPublic();
+		return keyPair.getPublic();
 	}
 
 	public void broadcast(byte[] payload, byte header) {
@@ -268,7 +283,20 @@ public class Node {
 		new Thread(new Miner(this, runtimeMin)).start();
 	}
 
+	public PKCS10CertificationRequest generateCsr() {
+		PKCS10CertificationRequest csr;
+		PKCS10CertificationRequestBuilder builderCsr = new JcaPKCS10CertificationRequestBuilder(
+				new X500Name("CN=" + name), keyPair.getPublic());
+		try {
+			ContentSigner contentSigner = new JcaContentSignerBuilder("SHA256WithRsa").build(keyPair.getPrivate());
+			return builderCsr.build(contentSigner);
+		} catch (OperatorCreationException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
 	public byte[] sign(byte[] message) {
-		return Crypto.sign(message, key.getPrivate());
+		return Crypto.sign(message, keyPair.getPrivate());
 	}
 }

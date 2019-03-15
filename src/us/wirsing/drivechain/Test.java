@@ -3,15 +3,23 @@ package us.wirsing.drivechain;
 import us.wirsing.drivechain.blockchain.Block;
 import us.wirsing.drivechain.blockchain.Blockchain;
 import us.wirsing.drivechain.blockchain.Transaction;
-import us.wirsing.drivechain.blockchain.TransactionDrive;
+import us.wirsing.drivechain.drive.CertificateAuthority;
+import us.wirsing.drivechain.drive.TransactionDrive;
 import us.wirsing.drivechain.node.Node;
 
 import java.util.Arrays;
 
 public class Test {
+
+    public static CertificateAuthority ca = new CertificateAuthority();
+
+    static {
+        TransactionDrive.certCa = ca.certificate;
+    }
+
     public static void main(String[] args) {
-        Node user1 = new Node("Alice");
-        Node user2 = new Node("Bob");
+        Node user1 = new Node("Alice", ca);
+        Node user2 = new Node("Bob", ca);
         Transaction txn = new TransactionDrive(user1, user2);
         Blockchain chain = new Blockchain();
         Block block = new Block(chain.tip.hash);

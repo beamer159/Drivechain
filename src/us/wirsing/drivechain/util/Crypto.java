@@ -1,8 +1,10 @@
 package us.wirsing.drivechain.util;
 
+import java.io.ByteArrayInputStream;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 
 public class Crypto {
 
@@ -20,10 +22,11 @@ public class Crypto {
 		return null;
 	}
 
-	public static PublicKey copyKeyPublic(PublicKey key) {
+	public static X509Certificate copyCertificate(X509Certificate certificate) {
 		try {
-			return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(key.getEncoded()));
-		} catch (InvalidKeySpecException | NoSuchAlgorithmException e) {
+			CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+			return (X509Certificate)certificateFactory.generateCertificate(new ByteArrayInputStream(certificate.getEncoded()));
+		} catch (CertificateException e) {
 			e.printStackTrace();
 		}
 		return null;

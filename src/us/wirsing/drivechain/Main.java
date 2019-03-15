@@ -1,7 +1,9 @@
 package us.wirsing.drivechain;
 
 import us.wirsing.drivechain.blockchain.*;
+import us.wirsing.drivechain.drive.CertificateAuthority;
 import us.wirsing.drivechain.node.Node;
+import us.wirsing.drivechain.drive.TransactionDrive;
 import us.wirsing.drivechain.util.Return2;
 import us.wirsing.drivechain.util.Serialization;
 
@@ -13,6 +15,7 @@ import java.util.Scanner;
 public class Main {
 
 	public static Map<String, Node> users = new HashMap<String, Node>();
+	public static CertificateAuthority ca = new CertificateAuthority();
 
 	public static void main(String[] args) {
 		Scanner scanner = new Scanner(System.in);
@@ -171,7 +174,7 @@ public class Main {
 			return;
 		}
 
-		users.put(name, new Node(name));
+		users.put(name, new Node(name, ca));
 		System.out.println("Node " + name + " created.");
 	}
 

@@ -21,6 +21,10 @@ import java.security.cert.X509Certificate;
 import java.util.Calendar;
 import java.util.Date;
 
+/**
+ * Represents a certificate authority
+ * Responsible for issuing certificates to
+ */
 public class CertificateAuthority {
 
 	private KeyPair keyPair = Crypto.generateKey();

@@ -2,6 +2,7 @@ package us.wirsing.drivechain;
 
 import us.wirsing.drivechain.blockchain.*;
 import us.wirsing.drivechain.drive.CertificateAuthority;
+import us.wirsing.drivechain.drive.NodeDrive;
 import us.wirsing.drivechain.node.Node;
 import us.wirsing.drivechain.drive.TransactionDrive;
 import us.wirsing.drivechain.util.Return2;
@@ -14,10 +15,11 @@ import java.util.Scanner;
 
 public class Main {
 
-	public static Map<String, Node> users = new HashMap<String, Node>();
+	public static Map<String, NodeDrive> users = new HashMap<>();
 	public static CertificateAuthority ca = new CertificateAuthority();
 
 	public static void main(String[] args) {
+		TransactionDrive.certCa = ca.certificate;
 		Scanner scanner = new Scanner(System.in);
 		boolean exit = false;
 		while(true) {
@@ -25,41 +27,47 @@ public class Main {
 			String[] input = scanner.nextLine().split("\\s+");
 			switch(input[0].toLowerCase()) {
 				case "newuser":
+				case "nu":
 					if (input.length != 2) {
 						wrongArgumentCount(input[0], 1, input.length - 1);
 						break;
 					}
 					newUser(input[1]);
 					break;
-				case "listusers":
-					if (input.length != 1) {
-						wrongArgumentCount(input[0], 0, input.length - 1);
-						break;
-					}
-					listUsers();
-					break;
 				case "connect":
+				case "c":
 					if (input.length != 3) {
 						wrongArgumentCount(input[0], 2, input.length - 1);
 						break;
 					}
 					connect(input[1], input[2]);
 					break;
-				case "listcxns":
-					if (input.length != 2) {
-						wrongArgumentCount(input[0], 1, input.length - 1);
-						break;
-					}
-					listCxns(input[1]);
-					break;
 				case "newtxn":
+				case "nt":
 					if (input.length != 3) {
 						wrongArgumentCount(input[0], 2, input.length - 1);
 						break;
 					}
 					newTxn(input[1], input[2]);
 					break;
+				case "listusers":
+				case "lu":
+					if (input.length != 1) {
+						wrongArgumentCount(input[0], 0, input.length - 1);
+						break;
+					}
+					listUsers();
+					break;
+				case "listcxns":
+				case "lc":
+					if (input.length != 2) {
+						wrongArgumentCount(input[0], 1, input.length - 1);
+						break;
+					}
+					listCxns(input[1]);
+					break;
 				case "listtxns":
+				case "lt":
 					if (input.length != 2) {
 						wrongArgumentCount(input[0], 1, input.length - 1);
 						break;
@@ -67,12 +75,44 @@ public class Main {
 					listTxns(input[1]);
 					break;
 				case "txndetails":
+				case "td":
 					if (input.length != 3) {
 						wrongArgumentCount(input[0], 2, input.length - 1);
 						break;
 					}
 					txnDetails(input[1], input[2]);
 					break;
+				case "blockdetails":
+				case "bd":
+					if (input.length != 2) {
+						wrongArgumentCount(input[0], 1, input.length - 1);
+						break;
+					}
+					blockDetails(input[1]);
+					break;
+				case "chainblockdetails":
+				case "cbd":
+					if (input.length != 3) {
+						wrongArgumentCount(input[0], 2, input.length - 1);
+						break;
+					}
+					chainBlockDetails(input[1], input[2]);
+					break;
+				case "chaindetails":
+				case "cd":
+					if (input.length != 2) {
+						wrongArgumentCount(input[0], 1, input.length - 1);
+						break;
+					}
+					chainDetails(input[1]);
+					break;
+				case "threads":
+				case "t":
+					System.out.println("Threads: " + Thread.activeCount());
+				case "exit":
+					exit = true;
+					break;
+					/*
 				case "broadcasttxn":
 					if (input.length != 3) {
 						wrongArgumentCount(input[0], 2, input.length - 1);
@@ -86,20 +126,6 @@ public class Main {
 						break;
 					}
 					addToBlock(input[1], input[2]);
-					break;
-				case "blockdetails":
-					if (input.length != 2) {
-						wrongArgumentCount(input[0], 1, input.length - 1);
-						break;
-					}
-					blockDetails(input[1]);
-					break;
-				case "chainblockdetails":
-					if (input.length != 3) {
-						wrongArgumentCount(input[0], 2, input.length - 1);
-						break;
-					}
-					chainBlockDetails(input[1], input[2]);
 					break;
 				case "setprevblock":
 					if (input.length != 3) {
@@ -136,13 +162,6 @@ public class Main {
 					}
 					addToChain(input[1]);
 					break;
-				case "chaindetails":
-					if (input.length != 2) {
-						wrongArgumentCount(input[0], 1, input.length - 1);
-						break;
-					}
-					chainDetails(input[1]);
-					break;
 				case "changetxndriver":
 					if (input.length != 4) {
 						wrongArgumentCount(input[0], 3, input.length - 1);
@@ -150,9 +169,7 @@ public class Main {
 					}
 					changeTxnDriver(input[1], input[2], input[3]);
 					break;
-				case "exit":
-					exit = true;
-					break;
+					 */
 				default:
 					System.out.println("Unknown command: " + input[0]);
 			}
@@ -174,19 +191,12 @@ public class Main {
 			return;
 		}
 
-		users.put(name, new Node(name, ca));
+		users.put(name, new NodeDrive(name, ca));
 		System.out.println("Node " + name + " created.");
 	}
 
-	private static void listUsers() {
-		System.out.println("Users");
-		for (String name : users.keySet()) {
-			System.out.println(" " + name);
-		}
-	}
-
 	private static void connect(String name1, String name2) {
-		Return2<Node, Node> users = getUserUser(name1, name2);
+		Return2<NodeDrive, NodeDrive> users = getUserUser(name1, name2);
 
 		if (users == null) {
 			return;
@@ -199,8 +209,30 @@ public class Main {
 		System.out.println(name1 + " and " + name2 + " connected.");
 	}
 
+	private static void newTxn(String name1, String name2) {
+		Return2<NodeDrive, NodeDrive> userUser = getUserUser(name1, name2);
+
+		if (userUser == null) {
+			return;
+		}
+
+		NodeDrive user1 = userUser.ret1;
+		NodeDrive user2 = userUser.ret2;
+
+		TransactionDrive txn = new TransactionDrive(user1, user2);
+		Node.send(Serialization.serialize(txn), Node.PACKET_TYPE_TRANSACTION, user1);
+		System.out.println("New transaction between " + name1 + " and " + name2 + " created (" + txn.hash.toBase64() + "). Given to " + name1 + ".");
+	}
+
+	private static void listUsers() {
+		System.out.println("Users");
+		for (String name : users.keySet()) {
+			System.out.println(" " + name);
+		}
+	}
+
 	private static void listCxns(String name) {
-		Node user = users.get(name);
+		NodeDrive user = users.get(name);
 
 		if (user == null) {
 			System.out.println("Node " + name + " does not exist.");
@@ -213,23 +245,8 @@ public class Main {
 		}
 	}
 
-	private static void newTxn(String name1, String name2) {
-		Return2<Node, Node> userUser = getUserUser(name1, name2);
-
-		if (userUser == null) {
-			return;
-		}
-
-		Node user1 = userUser.ret1;
-		Node user2 = userUser.ret2;
-
-		TransactionDrive txn = new TransactionDrive(user1, user2);
-		user1.addTransaction(txn);
-		System.out.println("New transaction between " + name1 + " and " + name2 + " created (" + txn.hash.toBase64() + "). Given to " + name1 + ".");
-	}
-
 	private static void listTxns(String name) {
-		Node user = users.get(name);
+		NodeDrive user = users.get(name);
 
 		if (user == null) {
 			System.out.println("Node " + name + " does not exist.");
@@ -255,39 +272,6 @@ public class Main {
 		System.out.println(" Driver: " + txn.nameDriver);
 		System.out.println(" Passenger: " + txn.namePassenger);
 		System.out.println(" Timestamp: " + txn.timestamp);
-	}
-
-	private static void broadcastTxn(String name, String txnSubstring) {
-		Return2<Node, Transaction> userTxn = getUserTxn(name, txnSubstring);
-
-		if (userTxn == null) {
-			return;
-		}
-
-		Node user = userTxn.ret1;
-		Transaction txn = userTxn.ret2;
-
-		user.broadcast(Serialization.serialize(txn), Node.PACKET_TYPE_TRANSACTION);
-
-		System.out.println(name + " broadcasted transaction " + txn.hash.toBase64());
-	}
-
-	private static void addToBlock(String name, String txnSubstring) {
-		Return2<Node, Transaction> userTxn = getUserTxn(name, txnSubstring);
-
-		if (userTxn == null) {
-			return;
-		}
-
-		Node user = userTxn.ret1;
-		Transaction txn = userTxn.ret2;
-
-		if (!user.addToBlock(txn)) {
-			System.out.println("TransactionDrive already in " + name + "'s block: " + txn.hash.toBase64());
-			return;
-		}
-
-		System.out.println("TransactionDrive added to " + name + "'s block: " + txn.hash.toBase64());
 	}
 
 	private static void blockDetails(String name) {
@@ -323,6 +307,76 @@ public class Main {
 		for (Transaction txn : block.txns) {
 			System.out.println("  " + txn.hash.toBase64());
 		}
+	}
+
+	private static void chainDetails(String name) {
+		Node user = users.get(name);
+
+		if (user == null) {
+			System.out.println("Node " + name + " does not exist.");
+			return;
+		}
+
+		Blockchain blockchain = user.getBlockchain();
+		Block tip = blockchain.tip;
+		Block block = tip;
+		HashSet<Hash> activeChain = new HashSet<>();
+
+		System.out.println("Blocks in active chain:");
+		while (block != null) {
+			activeChain.add(block.hash);
+			System.out.println(" " + block.hash.toBase64());
+			block = blockchain.blocks.get(block.hashPrevious);
+		}
+
+		System.out.println("Inactive blocks:");
+		for (Block leaf : blockchain.leaves) {
+			block = leaf;
+			while (!activeChain.contains(block.hash)) {
+				System.out.print(" " + block.hash.toBase64());
+				if (block == leaf) {
+					System.out.println(" (leaf)");
+				} else {
+					System.out.println();
+				}
+				block = blockchain.blocks.get(block.hashPrevious);
+			}
+		}
+	}
+
+	/*
+
+	private static void broadcastTxn(String name, String txnSubstring) {
+		Return2<Node, Transaction> userTxn = getUserTxn(name, txnSubstring);
+
+		if (userTxn == null) {
+			return;
+		}
+
+		Node user = userTxn.ret1;
+		Transaction txn = userTxn.ret2;
+
+		user.broadcastTxn(txn);
+
+		System.out.println(name + " broadcasted transaction " + txn.hash.toBase64());
+	}
+
+	private static void addToBlock(String name, String txnSubstring) {
+		Return2<Node, Transaction> userTxn = getUserTxn(name, txnSubstring);
+
+		if (userTxn == null) {
+			return;
+		}
+
+		Node user = userTxn.ret1;
+		Transaction txn = userTxn.ret2;
+
+		if (!user.addToBlock(txn)) {
+			System.out.println("TransactionDrive already in " + name + "'s block: " + txn.hash.toBase64());
+			return;
+		}
+
+		System.out.println("TransactionDrive added to " + name + "'s block: " + txn.hash.toBase64());
 	}
 
 	private static void setPrevBlock(String name, String blockSubstring) {
@@ -372,7 +426,7 @@ public class Main {
 		}
 
 		Block block = user.getBlock();
-		user.broadcast(Serialization.serialize(block), Node.PACKET_TYPE_BLOCK);
+		user.broadcastBlock(block);
 
 		System.out.println(name + " broadcasted block " + block.hash.toBase64());
 	}
@@ -389,41 +443,6 @@ public class Main {
 		System.out.println(name + " added block to chain");
 	}
 
-	private static void chainDetails(String name) {
-		Node user = users.get(name);
-
-		if (user == null) {
-			System.out.println("Node " + name + " does not exist.");
-			return;
-		}
-
-		Blockchain blockchain = user.getBlockchain();
-		Block tip = blockchain.tip;
-		Block block = tip;
-		HashSet<Hash> activeChain = new HashSet<>();
-
-		System.out.println("Blocks in active chain:");
-		while (block != null) {
-			activeChain.add(block.hash);
-			System.out.println(" " + block.hash.toBase64());
-			block = blockchain.blocks.get(block.hashPrevious);
-		}
-
-		System.out.println("Inactive blocks:");
-		for (Block leaf : blockchain.leaves) {
-			block = leaf;
-			while (!activeChain.contains(block.hash)) {
-				System.out.print(" " + block.hash.toBase64());
-				if (block == leaf) {
-					System.out.println(" (leaf)");
-				} else {
-					System.out.println();
-				}
-				block = blockchain.blocks.get(block.hashPrevious);
-			}
-		}
-	}
-
 	private static void changeTxnDriver(String name, String txnSubstring, String newDriver) {
 		Return2<Node, Transaction> userTxn = getUserTxn(name, txnSubstring);
 
@@ -434,16 +453,17 @@ public class Main {
 		Transaction txn = userTxn.ret2;
 		((TransactionDrive)txn).nameDriver = newDriver;
 	}
+	*/
 
-	private static Return2<Node, Node> getUserUser(String name1, String name2) {
-		Node user1 = users.get(name1);
+	private static Return2<NodeDrive, NodeDrive> getUserUser(String name1, String name2) {
+		NodeDrive user1 = users.get(name1);
 
 		if (user1 == null) {
 			System.out.println("User " + name1 + " does not exist.");
 			return null;
 		}
 
-		Node user2 = users.get(name2);
+		NodeDrive user2 = users.get(name2);
 
 		if (user2 == null) {
 			System.out.println("User " + name2 + " does not exist.");

@@ -1,5 +1,6 @@
 package us.wirsing.drivechain.blockchain;
 
+import us.wirsing.drivechain.node.Status;
 import us.wirsing.drivechain.util.TransactionTransfers;
 
 import java.io.Serializable;
@@ -117,7 +118,7 @@ public class Blockchain implements Serializable {
 		for (Block blockLeaf : leaves) {
 			Block block = blockLeaf;
 			while (!validated.contains(block)) {
-				if (!block.validate()) {
+				if (block.validate() != Status.OK) {
 					return false;
 				}
 				validated.add(block);
@@ -125,10 +126,11 @@ public class Blockchain implements Serializable {
 					break;
 				}
 				Hash hashPrevious = block.hashPrevious;
-				block = blocks.get(hashPrevious);
-				if (block == null || !block.hash.equals(hashPrevious)) {
+				Block blockPrevious = blocks.get(hashPrevious);
+				if (blockPrevious == null || !blockPrevious.hash.equals(hashPrevious) || blockPrevious.timestamp >= block.timestamp) {
 					return false;
 				}
+				block = blockPrevious;
 			}
 		}
 		return true;

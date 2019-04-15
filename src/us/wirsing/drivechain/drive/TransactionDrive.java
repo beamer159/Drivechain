@@ -41,7 +41,7 @@ public class TransactionDrive extends Transaction {
 
 	// Constructors
 
-	public TransactionDrive(Node driver, Node passenger) {
+	public TransactionDrive(NodeDrive driver, NodeDrive passenger) {
 		nameDriver = driver.getName();
 		namePassenger = passenger.getName();
 		timestamp = System.currentTimeMillis();
@@ -49,14 +49,6 @@ public class TransactionDrive extends Transaction {
 		certPassenger = passenger.getCertificate();
 
 		// Collate data into byte array and have driver and passenger sign
-		byte[] keyPublicDriverBytes = null;
-		byte[] keyPublicPassengerBytes = null;
-		try {
-			keyPublicDriverBytes = certDriver.getEncoded();
-			keyPublicPassengerBytes = certPassenger.getEncoded();
-		} catch (CertificateEncodingException e) {
-			e.printStackTrace();
-		}
 		ByteBuffer buffer = ByteBuffer.allocate(nameDriver.length() + namePassenger.length() + Long.BYTES);
 		buffer.put(nameDriver.getBytes());
 		buffer.put(namePassenger.getBytes());
@@ -66,13 +58,21 @@ public class TransactionDrive extends Transaction {
 		sigPassenger = passenger.sign(toSign);
 
 		// Collate data into byte array to calculate hash
+		byte[] certDriverBytes = null;
+		byte[] certPassengerBytes = null;
+		try {
+			certDriverBytes = certDriver.getEncoded();
+			certPassengerBytes = certPassenger.getEncoded();
+		} catch (CertificateEncodingException e) {
+			e.printStackTrace();
+		}
 		buffer = ByteBuffer.allocate(toSign.length + sigDriver.length + sigPassenger.length
-				+ keyPublicDriverBytes.length + keyPublicPassengerBytes.length);
+				+ certDriverBytes.length + certPassengerBytes.length);
 		buffer.put(toSign);
 		buffer.put(sigDriver);
 		buffer.put(sigPassenger);
-		buffer.put(keyPublicDriverBytes);
-		buffer.put(keyPublicPassengerBytes);
+		buffer.put(certDriverBytes);
+		buffer.put(certPassengerBytes);
 		hash = new Hash(Crypto.SHA256(buffer.array()));
 	}
 
@@ -111,14 +111,6 @@ public class TransactionDrive extends Transaction {
 		}
 
 		// Verify driver and passenger signatures
-		byte[] certDriverBytes = null;
-		byte[] certPassengerBytes = null;
-		try {
-			certDriverBytes = certDriver.getEncoded();
-			certPassengerBytes = certPassenger.getEncoded();
-		} catch (CertificateEncodingException e) {
-			e.printStackTrace();
-		}
 		ByteBuffer buffer = ByteBuffer.allocate(nameDriver.length() + namePassenger.length() + Long.BYTES);
 		buffer.put(nameDriver.getBytes());
 		buffer.put(namePassenger.getBytes());
@@ -130,6 +122,14 @@ public class TransactionDrive extends Transaction {
 		}
 
 		// Validate hash
+		byte[] certDriverBytes = null;
+		byte[] certPassengerBytes = null;
+		try {
+			certDriverBytes = certDriver.getEncoded();
+			certPassengerBytes = certPassenger.getEncoded();
+		} catch (CertificateEncodingException e) {
+			e.printStackTrace();
+		}
 		buffer = ByteBuffer.allocate(signed.length + sigDriver.length + sigPassenger.length
 				+ certDriverBytes.length + certPassengerBytes.length);
 		buffer.put(signed);
@@ -148,7 +148,7 @@ public class TransactionDrive extends Transaction {
 
 	@Override
 	public int hashCode() {
-		return Arrays.hashCode(hash.bytes);
+		return hash.hashCode();
 	}
 
 	@Override

@@ -1,18 +1,19 @@
 package us.wirsing.drivechain.blockchain;
 
+import us.wirsing.drivechain.node.Status;
 import us.wirsing.drivechain.util.Crypto;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class Block implements Serializable {
 
-	public static final int DIFFICULTY = 2;
+	private static final int DIFFICULTY = 24;
 
-	public Set<Transaction> txns = new HashSet<>();
+	public Set<Transaction> txns = new LinkedHashSet<>();
 	public long timestamp;
 	public Hash hashPrevious;
 	public long nonce;
@@ -48,8 +49,9 @@ public class Block implements Serializable {
 	 * @param txn Transaction to add
 	 */
 	public void add(Transaction txn) {
-		txns.add(txn);
-		hash = calculateHash();
+		if (txns.add(txn)) {
+			hash = calculateHash();
+		}
 	}
 
 	/**
@@ -75,24 +77,24 @@ public class Block implements Serializable {
 	 * Validates the block
 	 * @return true if validation is successful, otherwise false
 	 */
-	public boolean validate() {
+	public Status validate() {
 		// Validate proof of work
-		if (!Arrays.equals(new byte[DIFFICULTY], Arrays.copyOf(hash.bytes, DIFFICULTY))) {
-			return false;
-		}
+        if (!validateProofOfWork()) {
+            return Status.INVALID_BLOCK;
+        }
 
 		// Validate hash
 		if (!hash.equals(calculateHash())) {
-			return false;
+			return Status.INVALID_BLOCK;
 		}
 
 		// Validate block transactions
 		for (Transaction txn : txns) {
 			if (!txn.validate()) {
-				return false;
+				return Status.INVALID_TRANSACTION;
 			}
 		}
-		return true;
+		return Status.OK;
 	}
 
 	/**
@@ -113,6 +115,16 @@ public class Block implements Serializable {
 		buffer.putLong(nonce);
 		return new Hash(Crypto.SHA256(buffer.array()));
 	}
+
+	public boolean validateProofOfWork() {
+        int zeroBytes = Block.DIFFICULTY / 8;
+        int zeroBits = Block.DIFFICULTY % 8;
+        if (hash.bytes == null) {
+        	int zero = 0;
+		}
+        return Arrays.equals(new byte[zeroBytes], Arrays.copyOf(hash.bytes, zeroBytes))
+                && (hash.bytes[zeroBytes] & 0xFF) >>> (8 - zeroBits) == 0;
+    }
 
 	@Override
 	public int hashCode() {

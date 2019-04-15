@@ -1,25 +1,12 @@
 package us.wirsing.drivechain.node;
 
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.bouncycastle.pkcs.PKCS10CertificationRequest;
-import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
-import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-import us.wirsing.drivechain.blockchain.Block;
-import us.wirsing.drivechain.blockchain.Blockchain;
-import us.wirsing.drivechain.blockchain.Hash;
-import us.wirsing.drivechain.blockchain.Transaction;
-import us.wirsing.drivechain.drive.CertificateAuthority;
-import us.wirsing.drivechain.util.Crypto;
+import us.wirsing.drivechain.blockchain.*;
 import us.wirsing.drivechain.util.Serialization;
 import us.wirsing.drivechain.util.TransactionTransfers;
 
-import java.security.KeyPair;
-import java.security.PublicKey;
-import java.security.cert.X509Certificate;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Node {
 
@@ -27,30 +14,17 @@ public class Node {
 	public static final byte PACKET_TYPE_BLOCK = 1;
 	public static final byte PACKET_TYPE_BLOCKCHAIN = 2;
 
-	private String name;
-	private KeyPair keyPair = Crypto.generateKey();
-	private X509Certificate certNode;
-	private List<Node> cxns = new ArrayList<>();
-	private Blockchain blockchain = new Blockchain();
-	Block block = new Block(blockchain.tip.hash);
-	private Set<Transaction> txnsUnconfirmed = new HashSet<>();
+	protected List<Node> cxns = new ArrayList<>();
+	protected Blockchain blockchain = new Blockchain();
+	protected Block block = new Block(blockchain.tip.hash);
+	protected Set<Transaction> txnsUnconfirmed = new HashSet<>();
+	public ConcurrentLinkedQueue<byte[]> packets = new ConcurrentLinkedQueue<>();
 
-	// Constructors
-
-	public Node(String name, CertificateAuthority ca) {
-		this.name = name;
-		this.certNode = ca.issueCertificate(generateCsr());
+	public Node() {
+		new Thread(new Miner(this)).start();
 	}
 
 	// Information Gathering Methods
-
-	public String getName() {
-		return name;
-	}
-
-	public X509Certificate getCertificate() {
-		return certNode;
-	}
 
 	/**
 	 * @return a copy of the node's block
@@ -66,18 +40,6 @@ public class Node {
 		return new Blockchain(blockchain);
 	}
 
-	/**
-	 * @return array of names of nodes connected to this node
-	 */
-	public String[] getConnections() {
-		String[] ret = new String[cxns.size()];
-		int i = 0;
-		for (Node node : cxns) {
-			ret[i++] = node.getName();
-		}
-		return ret;
-	}
-
 	// Manually set the node's block's previous hash
 
 	public void setPrevHash(Hash hash) {
@@ -89,27 +51,12 @@ public class Node {
 	public void connect(Node node) {
 		if (!cxns.contains(node)) {
 			cxns.add(node);
+            node.send(Serialization.serialize(node.blockchain), PACKET_TYPE_BLOCKCHAIN, this);
 		}
 		if (!node.cxns.contains(this)) {
 			node.cxns.add(this);
+            send(Serialization.serialize(blockchain), PACKET_TYPE_BLOCKCHAIN, node);
 		}
-	}
-
-	public String[] transactions() {
-		return transactions(txnsUnconfirmed);
-	}
-
-	public String[] blockTransactions() {
-		return transactions(block.txns);
-	}
-
-	private String[] transactions(Set<Transaction> transactions) {
-		String[] ret = new String[transactions.size()];
-		int i = 0;
-		for (Transaction txn : transactions) {
-			ret[i++] = txn.hash.toBase64();
-		}
-		return ret;
 	}
 
 	public boolean addToBlock(Transaction txn) {
@@ -157,21 +104,25 @@ public class Node {
 		return null;
 	}
 
-	public PublicKey publicKey() {
-		return keyPair.getPublic();
+	public void broadcastTxn(Transaction txn) {
+		broadcast(Serialization.serialize(txn), PACKET_TYPE_TRANSACTION);
 	}
 
-	public void broadcast(byte[] payload, byte header) {
+	public void broadcastBlock(Block block) {
+		broadcast(Serialization.serialize(block), PACKET_TYPE_BLOCK);
+	}
+
+	private void broadcast(byte[] payload, byte header) {
 		for (Node node : cxns) {
 			send(payload, header, node);
 		}
 	}
 
-	public void send(byte[] payload, byte header, Node receiver) {
+	public static void send(byte[] payload, byte header, Node receiver) {
 		byte[] packet = new byte[payload.length + 1];
 		packet[0] = header;
 		System.arraycopy(payload, 0, packet, 1, payload.length);
-		receiver.receive(packet);
+		receiver.packets.add(packet);
 	}
 
 	public void addToChain() {
@@ -184,6 +135,8 @@ public class Node {
 
 		for (Transaction txn : txnTransfers.addTo) {
 			txnsUnconfirmed.add(txn);
+			broadcastTxn(txn);
+			addToBlock(txn);
 		}
 
 		for (Transaction txn : txnTransfers.removeFrom) {
@@ -194,109 +147,127 @@ public class Node {
 		this.block.hashPrevious = blockchain.tip.hash;
 	}
 
-	public void receive(byte[] packet) {
+	public void processPackets() {
+		for(byte[] packet : packets) {
+			onPacketReceived(packet);
+			packets.remove(packet);
+		}
+	}
+
+	public void onPacketReceived(byte[] packet) {
 
 		byte header = packet[0];
 		byte[] payload = Arrays.copyOfRange(packet, 1, packet.length);
 
 		switch (header) {
 			case PACKET_TYPE_TRANSACTION:
-				receiveTxn(Serialization.deserialize(payload));
+				onTxnReceived(Serialization.deserialize(payload));
 				break;
 			case PACKET_TYPE_BLOCK:
-				receiveBlock(Serialization.deserialize(payload));
+				onBlockReceived(Serialization.deserialize(payload));
 				break;
 			case PACKET_TYPE_BLOCKCHAIN:
+			    onBlockchainReceived(Serialization.deserialize(payload));
 				break;
 			default:
 				break;
 		}
 	}
 
-	public void addTransaction(Transaction txn) {
-		txnsUnconfirmed.add(txn);
-	}
+	public Status onTxnReceived(Transaction txn) {
+        // Check if the node already has this transaction
 
-	public boolean receiveTxn(Transaction txn) {
+        if (txnsUnconfirmed.contains(txn)) {
+            return Status.DUPLICATE_TRANSACTION_UNCONFIRMED;
+        }
 
-		System.out.print(name + " received transaction " + txn.hash.toBase64() + " - ");
+        for (Block chainBlock = blockchain.blocks.get(block.hashPrevious);
+             chainBlock != blockchain.GENESIS;
+             chainBlock = blockchain.blocks.get(chainBlock.hashPrevious)) {
+            if (chainBlock.txns.contains(txn)) {
+                return Status.DUPLICATE_TRANSACTION_BLOCKCHAIN;
+            }
+        }
 
-		// Check the validity of the transaction
-
+	    // Check the validity of the transaction
 
 		if (!txn.validate()) {
-			System.out.println("Invalid");
-			return false;
+			return Status.INVALID_TRANSACTION;
 		}
 
-		// Check if the node already has this transaction
+		// TransactionDrive is good, add it and broadcast it
 
-		for (Transaction t : txnsUnconfirmed) {
-			if (t.hash.equals(txn.hash)) {
-				System.out.println("Duplicate");
-				return false;
-			}
-		}
-
-		// TransactionDrive is good, add it
-
-		System.out.println("Valid");
 		txnsUnconfirmed.add(txn);
-
-		broadcast(Serialization.serialize(txn), PACKET_TYPE_TRANSACTION);
-
-		return true;
+		block.add(txn);
+		broadcastTxn(txn);
+		return Status.OK;
 	}
 
-	public boolean receiveBlock(Block block) {
-		System.out.print(name + " received block " + block.hash.toBase64() + " - ");
+	/*
+	public Status onBlockReceived(Block block) {
+	    Status status = validateBlock(block);
+	    if (status == Status.OK) {
+            addToChain(block);
+            broadcastBlock(block);
+        }
+	    return status;
+    }
+	 */
 
-		// Check the validity of the block
+	public Status onBlockReceived(Block block) {
+        // Check if no block has a hash equal to this block's previous hash
 
-		if (!block.validate()) {
-			System.out.println("Invalid");
-			return false;
-		}
+        if (!blockchain.blocks.containsKey(block.hashPrevious)) {
+            return Status.MISSING_PREDECESSOR;
+        }
 
-		// Check if the node already has this block
+        // Check if the node already has this block
 
-		if (blockchain.blocks.containsKey(block.hash) || block.hash.equals(this.block.hash)) {
-			System.out.println("Duplicate");
-			return false;
+        if (blockchain.blocks.containsKey(block.hash)) {
+            return Status.DUPLICATE_BLOCK;
+        }
+
+        for (Transaction txn : block.txns) {
+            for (Block chainBlock = blockchain.blocks.get(block.hashPrevious);
+                    chainBlock != blockchain.GENESIS;
+                    chainBlock = blockchain.blocks.get(chainBlock.hashPrevious)) {
+                if (chainBlock.txns.contains(txn)) {
+                    return Status.DUPLICATE_TRANSACTION_BLOCKCHAIN;
+                }
+            }
+        }
+
+	    // Check the validity of the block
+        Status status = block.validate();
+		if (status != Status.OK) {
+			return status;
 		}
 
 		// Block is good, add it
 
-		System.out.println("Valid");
-		addToChain(block);
-
-		broadcast(Serialization.serialize(new Block(block)), PACKET_TYPE_BLOCK);
-
-		return true;
+        addToChain(block);
+        broadcastBlock(block);
+		return Status.OK;
 	}
 
-	public void mine() {
-		new Thread(new Miner(this)).start();
-	}
+	public void onBlockchainReceived(Blockchain blockchain) {
+	    int countPrevious = -1;
+	    while (countPrevious != blockchain.blocks.size()) {
+            countPrevious = blockchain.blocks.size();
+            Iterator<Map.Entry<Hash, Block>> iter = blockchain.blocks.entrySet().iterator();
+            while (iter.hasNext()) {
+                Block block = iter.next().getValue();
+                if (onBlockReceived(block) != Status.MISSING_PREDECESSOR) {
+                    iter.remove();
+                }
+            }
+        }
+    }
 
-	public void mine(long runtimeMin) {
-		new Thread(new Miner(this, runtimeMin)).start();
-	}
-
-	public PKCS10CertificationRequest generateCsr() {
-		PKCS10CertificationRequest csr;
-		PKCS10CertificationRequestBuilder builderCsr = new JcaPKCS10CertificationRequestBuilder(
-				new X500Name("CN=" + name), keyPair.getPublic());
-		try {
-			ContentSigner contentSigner = new JcaContentSignerBuilder("SHA256WithRsa").build(keyPair.getPrivate());
-			return builderCsr.build(contentSigner);
-		} catch (OperatorCreationException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	public byte[] sign(byte[] message) {
-		return Crypto.sign(message, keyPair.getPrivate());
+	public void onBlockMined() {
+		Block blockMined = new Block(block);
+		addToChain(blockMined);
+		broadcastBlock(blockMined);
+		block = new Block(blockchain.tip.hash);
 	}
 }

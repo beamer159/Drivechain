@@ -109,67 +109,10 @@ public class Main {
 				case "threads":
 				case "t":
 					System.out.println("Threads: " + Thread.activeCount());
+					break;
 				case "exit":
 					exit = true;
 					break;
-					/*
-				case "broadcasttxn":
-					if (input.length != 3) {
-						wrongArgumentCount(input[0], 2, input.length - 1);
-						break;
-					}
-					broadcastTxn(input[1], input[2]);
-					break;
-				case "addtoblock":
-					if (input.length != 3) {
-						wrongArgumentCount(input[0], 2, input.length - 1);
-						break;
-					}
-					addToBlock(input[1], input[2]);
-					break;
-				case "setprevblock":
-					if (input.length != 3) {
-						wrongArgumentCount(input[0], 2, input.length - 1);
-						break;
-					}
-					setPrevBlock(input[1], input[2]);
-					break;
-				case "mine":
-					if (input.length != 2) {
-						wrongArgumentCount(input[0], 1, input.length - 1);
-						break;
-					}
-					mine(input[1]);
-					break;
-				case "minetime":
-					if (input.length != 3) {
-						wrongArgumentCount(input[0], 2, input.length - 1);
-						break;
-					}
-					mineTime(input[1], input[2]);
-					break;
-				case "broadcastblock":
-					if (input.length != 2) {
-						wrongArgumentCount(input[0], 1, input.length - 1);
-						break;
-					}
-					broadcastBlock(input[1]);
-					break;
-				case "addtochain":
-					if (input.length != 2) {
-						wrongArgumentCount(input[0], 1, input.length - 1);
-						break;
-					}
-					addToChain(input[1]);
-					break;
-				case "changetxndriver":
-					if (input.length != 4) {
-						wrongArgumentCount(input[0], 3, input.length - 1);
-						break;
-					}
-					changeTxnDriver(input[1], input[2], input[3]);
-					break;
-					 */
 				default:
 					System.out.println("Unknown command: " + input[0]);
 			}
@@ -191,7 +134,9 @@ public class Main {
 			return;
 		}
 
-		users.put(name, new NodeDrive(name, ca));
+		NodeDrive node = new NodeDrive(name, ca);
+		node.start();
+		users.put(name, node);
 		System.out.println("Node " + name + " created.");
 	}
 
@@ -343,117 +288,6 @@ public class Main {
 			}
 		}
 	}
-
-	/*
-
-	private static void broadcastTxn(String name, String txnSubstring) {
-		Return2<Node, Transaction> userTxn = getUserTxn(name, txnSubstring);
-
-		if (userTxn == null) {
-			return;
-		}
-
-		Node user = userTxn.ret1;
-		Transaction txn = userTxn.ret2;
-
-		user.broadcastTxn(txn);
-
-		System.out.println(name + " broadcasted transaction " + txn.hash.toBase64());
-	}
-
-	private static void addToBlock(String name, String txnSubstring) {
-		Return2<Node, Transaction> userTxn = getUserTxn(name, txnSubstring);
-
-		if (userTxn == null) {
-			return;
-		}
-
-		Node user = userTxn.ret1;
-		Transaction txn = userTxn.ret2;
-
-		if (!user.addToBlock(txn)) {
-			System.out.println("TransactionDrive already in " + name + "'s block: " + txn.hash.toBase64());
-			return;
-		}
-
-		System.out.println("TransactionDrive added to " + name + "'s block: " + txn.hash.toBase64());
-	}
-
-	private static void setPrevBlock(String name, String blockSubstring) {
-		Return2<Node, Block> userBlock = getUserBlock(name, blockSubstring);
-
-		if (userBlock == null) {
-			return;
-		}
-
-		Hash hash = userBlock.ret2.hash;
-
-		userBlock.ret1.setPrevHash(hash);
-
-		System.out.println(name + "'s block's previous block set to " + hash.toBase64());
-	}
-
-	private static void mine(String name) {
-		Node user = users.get(name);
-
-		if (user == null) {
-			System.out.println("Node " + name + " does not exist.");
-			return;
-		}
-
-		System.out.println(name + " started mining...");
-		user.mine();
-	}
-
-	private static void mineTime(String name, String time) {
-		Node user = users.get(name);
-
-		if (user == null) {
-			System.out.println("Node " + name + " does not exist.");
-			return;
-		}
-
-		System.out.println(name + " started mining...");
-		user.mine(Long.parseLong(time));
-	}
-
-	private static void broadcastBlock(String name) {
-		Node user = users.get(name);
-
-		if (user == null) {
-			System.out.println("Node " + name + " does not exist.");
-			return;
-		}
-
-		Block block = user.getBlock();
-		user.broadcastBlock(block);
-
-		System.out.println(name + " broadcasted block " + block.hash.toBase64());
-	}
-
-	private static void addToChain(String name) {
-		Node user = users.get(name);
-
-		if (user == null) {
-			System.out.println("Node " + name + " does not exist.");
-			return;
-		}
-
-		user.addToChain();
-		System.out.println(name + " added block to chain");
-	}
-
-	private static void changeTxnDriver(String name, String txnSubstring, String newDriver) {
-		Return2<Node, Transaction> userTxn = getUserTxn(name, txnSubstring);
-
-		if (userTxn == null) {
-			return;
-		}
-
-		Transaction txn = userTxn.ret2;
-		((TransactionDrive)txn).nameDriver = newDriver;
-	}
-	*/
 
 	private static Return2<NodeDrive, NodeDrive> getUserUser(String name1, String name2) {
 		NodeDrive user1 = users.get(name1);

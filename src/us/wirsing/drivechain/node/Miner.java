@@ -16,7 +16,7 @@ public class Miner implements Runnable {
 	public void run() {
 		while (true) {
 			node.processPackets();
-            block = node.block;
+			block = node.block;
 			if (block.txns.size() == 0) {
 				try {
 					Thread.sleep(1000);
@@ -26,11 +26,14 @@ public class Miner implements Runnable {
 				}
 			}
 			if (!block.validateProofOfWork()) {
-                block.setNonce(block.nonce + 1);
+				block.setNonce(block.nonce + 1);
 			} else {
-				System.out.println("Block mined: " + block.hash.toBase64());
-			    node.onBlockMined();
+				onBlockMined();
 			}
 		}
+	}
+
+	protected void onBlockMined() {
+		node.onBlockMined();
 	}
 }

@@ -20,7 +20,7 @@ public class Node {
 	protected Set<Transaction> txnsUnconfirmed = new HashSet<>();
 	public ConcurrentLinkedQueue<byte[]> packets = new ConcurrentLinkedQueue<>();
 
-	public Node() {
+	public void start() {
 		new Thread(new Miner(this)).start();
 	}
 
@@ -40,22 +40,16 @@ public class Node {
 		return new Blockchain(blockchain);
 	}
 
-	// Manually set the node's block's previous hash
-
-	public void setPrevHash(Hash hash) {
-		block.hashPrevious = hash;
-	}
-
 	// Connects two users in the network
 
 	public void connect(Node node) {
 		if (!cxns.contains(node)) {
 			cxns.add(node);
-            node.send(Serialization.serialize(node.blockchain), PACKET_TYPE_BLOCKCHAIN, this);
+			node.send(Serialization.serialize(node.blockchain), PACKET_TYPE_BLOCKCHAIN, this);
 		}
 		if (!node.cxns.contains(this)) {
 			node.cxns.add(this);
-            send(Serialization.serialize(blockchain), PACKET_TYPE_BLOCKCHAIN, node);
+			send(Serialization.serialize(blockchain), PACKET_TYPE_BLOCKCHAIN, node);
 		}
 	}
 
@@ -125,11 +119,6 @@ public class Node {
 		receiver.packets.add(packet);
 	}
 
-	public void addToChain() {
-		addToChain(new Block(block));
-		block.txns.clear();
-	}
-
 	public void addToChain(Block block) {
 		TransactionTransfers txnTransfers = blockchain.add(block);
 
@@ -167,7 +156,7 @@ public class Node {
 				onBlockReceived(Serialization.deserialize(payload));
 				break;
 			case PACKET_TYPE_BLOCKCHAIN:
-			    onBlockchainReceived(Serialization.deserialize(payload));
+				onBlockchainReceived(Serialization.deserialize(payload));
 				break;
 			default:
 				break;
@@ -175,21 +164,21 @@ public class Node {
 	}
 
 	public Status onTxnReceived(Transaction txn) {
-        // Check if the node already has this transaction
+		// Check if the node already has this transaction
 
-        if (txnsUnconfirmed.contains(txn)) {
-            return Status.DUPLICATE_TRANSACTION_UNCONFIRMED;
-        }
+		if (txnsUnconfirmed.contains(txn)) {
+			return Status.DUPLICATE_TRANSACTION_UNCONFIRMED;
+		}
 
-        for (Block chainBlock = blockchain.blocks.get(block.hashPrevious);
-             chainBlock != blockchain.GENESIS;
-             chainBlock = blockchain.blocks.get(chainBlock.hashPrevious)) {
-            if (chainBlock.txns.contains(txn)) {
-                return Status.DUPLICATE_TRANSACTION_BLOCKCHAIN;
-            }
-        }
+		for (Block chainBlock = blockchain.blocks.get(block.hashPrevious);
+			 chainBlock != blockchain.GENESIS;
+			 chainBlock = blockchain.blocks.get(chainBlock.hashPrevious)) {
+			if (chainBlock.txns.contains(txn)) {
+				return Status.DUPLICATE_TRANSACTION_BLOCKCHAIN;
+			}
+		}
 
-	    // Check the validity of the transaction
+		// Check the validity of the transaction
 
 		if (!txn.validate()) {
 			return Status.INVALID_TRANSACTION;
@@ -203,66 +192,55 @@ public class Node {
 		return Status.OK;
 	}
 
-	/*
 	public Status onBlockReceived(Block block) {
-	    Status status = validateBlock(block);
-	    if (status == Status.OK) {
-            addToChain(block);
-            broadcastBlock(block);
-        }
-	    return status;
-    }
-	 */
+		// Check if no block has a hash equal to this block's previous hash
 
-	public Status onBlockReceived(Block block) {
-        // Check if no block has a hash equal to this block's previous hash
+		if (!blockchain.blocks.containsKey(block.hashPrevious)) {
+			return Status.MISSING_PREDECESSOR;
+		}
 
-        if (!blockchain.blocks.containsKey(block.hashPrevious)) {
-            return Status.MISSING_PREDECESSOR;
-        }
+		// Check if the node already has this block
 
-        // Check if the node already has this block
+		if (blockchain.blocks.containsKey(block.hash)) {
+			return Status.DUPLICATE_BLOCK;
+		}
 
-        if (blockchain.blocks.containsKey(block.hash)) {
-            return Status.DUPLICATE_BLOCK;
-        }
+		for (Transaction txn : block.txns) {
+			for (Block chainBlock = blockchain.blocks.get(block.hashPrevious);
+					chainBlock != blockchain.GENESIS;
+					chainBlock = blockchain.blocks.get(chainBlock.hashPrevious)) {
+				if (chainBlock.txns.contains(txn)) {
+					return Status.DUPLICATE_TRANSACTION_BLOCKCHAIN;
+				}
+			}
+		}
 
-        for (Transaction txn : block.txns) {
-            for (Block chainBlock = blockchain.blocks.get(block.hashPrevious);
-                    chainBlock != blockchain.GENESIS;
-                    chainBlock = blockchain.blocks.get(chainBlock.hashPrevious)) {
-                if (chainBlock.txns.contains(txn)) {
-                    return Status.DUPLICATE_TRANSACTION_BLOCKCHAIN;
-                }
-            }
-        }
-
-	    // Check the validity of the block
-        Status status = block.validate();
+		// Check the validity of the block
+		Status status = block.validate();
 		if (status != Status.OK) {
 			return status;
 		}
 
 		// Block is good, add it
 
-        addToChain(block);
-        broadcastBlock(block);
+		addToChain(block);
+		broadcastBlock(block);
 		return Status.OK;
 	}
 
 	public void onBlockchainReceived(Blockchain blockchain) {
-	    int countPrevious = -1;
-	    while (countPrevious != blockchain.blocks.size()) {
-            countPrevious = blockchain.blocks.size();
-            Iterator<Map.Entry<Hash, Block>> iter = blockchain.blocks.entrySet().iterator();
-            while (iter.hasNext()) {
-                Block block = iter.next().getValue();
-                if (onBlockReceived(block) != Status.MISSING_PREDECESSOR) {
-                    iter.remove();
-                }
-            }
-        }
-    }
+		int countPrevious = -1;
+		while (countPrevious != blockchain.blocks.size()) {
+			countPrevious = blockchain.blocks.size();
+			Iterator<Map.Entry<Hash, Block>> iter = blockchain.blocks.entrySet().iterator();
+			while (iter.hasNext()) {
+				Block block = iter.next().getValue();
+				if (onBlockReceived(block) != Status.MISSING_PREDECESSOR) {
+					iter.remove();
+				}
+			}
+		}
+	}
 
 	public void onBlockMined() {
 		Block blockMined = new Block(block);

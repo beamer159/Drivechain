@@ -79,9 +79,9 @@ public class Block implements Serializable {
 	 */
 	public Status validate() {
 		// Validate proof of work
-        if (!validateProofOfWork()) {
-            return Status.INVALID_BLOCK;
-        }
+		if (!validateProofOfWork()) {
+			return Status.INVALID_BLOCK;
+		}
 
 		// Validate hash
 		if (!hash.equals(calculateHash())) {
@@ -117,14 +117,14 @@ public class Block implements Serializable {
 	}
 
 	public boolean validateProofOfWork() {
-        int zeroBytes = Block.DIFFICULTY / 8;
-        int zeroBits = Block.DIFFICULTY % 8;
-        if (hash.bytes == null) {
-        	int zero = 0;
+		int zeroBytes = Block.DIFFICULTY / 8;
+		int zeroBits = Block.DIFFICULTY % 8;
+		if (hash.bytes == null) {
+			int zero = 0;
 		}
-        return Arrays.equals(new byte[zeroBytes], Arrays.copyOf(hash.bytes, zeroBytes))
-                && (hash.bytes[zeroBytes] & 0xFF) >>> (8 - zeroBits) == 0;
-    }
+		return Arrays.equals(new byte[zeroBytes], Arrays.copyOf(hash.bytes, zeroBytes))
+				&& (hash.bytes[zeroBytes] & 0xFF) >>> (8 - zeroBits) == 0;
+	}
 
 	@Override
 	public int hashCode() {

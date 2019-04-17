@@ -1,4 +1,4 @@
-package us.wirsing.drivechain.blockchain;
+package us.wirsing.drivechain.util;
 
 import java.io.Serializable;
 import java.util.Arrays;

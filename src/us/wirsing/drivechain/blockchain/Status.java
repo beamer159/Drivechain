@@ -1,4 +1,4 @@
-package us.wirsing.drivechain.node;
+package us.wirsing.drivechain.blockchain;
 
 public enum Status {
 	OK,

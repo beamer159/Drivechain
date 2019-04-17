@@ -1,6 +1,6 @@
 package us.wirsing.drivechain.blockchain;
 
-import us.wirsing.drivechain.node.Status;
+import us.wirsing.drivechain.util.Hash;
 import us.wirsing.drivechain.util.TransactionTransfers;
 
 import java.io.Serializable;

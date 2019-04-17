@@ -1,6 +1,6 @@
 package us.wirsing.drivechain.drive;
 
-import us.wirsing.drivechain.node.Miner;
+import us.wirsing.drivechain.blockchain.node.Miner;
 
 public class MinerDrive extends Miner {
 

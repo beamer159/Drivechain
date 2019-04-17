@@ -9,9 +9,8 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import us.wirsing.drivechain.blockchain.Block;
 import us.wirsing.drivechain.blockchain.Transaction;
-import us.wirsing.drivechain.node.Miner;
-import us.wirsing.drivechain.node.Node;
-import us.wirsing.drivechain.node.Status;
+import us.wirsing.drivechain.blockchain.node.Node;
+import us.wirsing.drivechain.blockchain.Status;
 import us.wirsing.drivechain.util.Crypto;
 
 import java.security.KeyPair;

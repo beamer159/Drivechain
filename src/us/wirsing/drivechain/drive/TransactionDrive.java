@@ -1,16 +1,13 @@
 package us.wirsing.drivechain.drive;
 
 import org.bouncycastle.asn1.x500.RDN;
-import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
-import us.wirsing.drivechain.blockchain.Hash;
+import us.wirsing.drivechain.util.Hash;
 import us.wirsing.drivechain.blockchain.Transaction;
-import us.wirsing.drivechain.node.Node;
 import us.wirsing.drivechain.util.Crypto;
 
-import javax.security.auth.x500.X500Principal;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;

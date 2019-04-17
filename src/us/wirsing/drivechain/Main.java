@@ -3,8 +3,9 @@ package us.wirsing.drivechain;
 import us.wirsing.drivechain.blockchain.*;
 import us.wirsing.drivechain.drive.CertificateAuthority;
 import us.wirsing.drivechain.drive.NodeDrive;
-import us.wirsing.drivechain.node.Node;
+import us.wirsing.drivechain.blockchain.node.Node;
 import us.wirsing.drivechain.drive.TransactionDrive;
+import us.wirsing.drivechain.util.Hash;
 import us.wirsing.drivechain.util.Return2;
 import us.wirsing.drivechain.util.Serialization;
 

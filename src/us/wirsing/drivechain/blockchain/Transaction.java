@@ -1,5 +1,7 @@
 package us.wirsing.drivechain.blockchain;
 
+import us.wirsing.drivechain.util.Hash;
+
 import java.io.Serializable;
 
 

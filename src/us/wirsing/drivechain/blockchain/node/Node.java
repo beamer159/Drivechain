@@ -1,11 +1,11 @@
-package us.wirsing.drivechain.node;
+package us.wirsing.drivechain.blockchain.node;
 
 import us.wirsing.drivechain.blockchain.*;
+import us.wirsing.drivechain.util.Hash;
 import us.wirsing.drivechain.util.Serialization;
 import us.wirsing.drivechain.util.TransactionTransfers;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class Node {

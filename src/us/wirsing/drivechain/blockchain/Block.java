@@ -1,7 +1,7 @@
 package us.wirsing.drivechain.blockchain;
 
-import us.wirsing.drivechain.node.Status;
 import us.wirsing.drivechain.util.Crypto;
+import us.wirsing.drivechain.util.Hash;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;

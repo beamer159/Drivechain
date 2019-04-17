@@ -1,7 +1,6 @@
-package us.wirsing.drivechain.node;
+package us.wirsing.drivechain.blockchain.node;
 
 import us.wirsing.drivechain.blockchain.Block;
-import us.wirsing.drivechain.blockchain.Hash;
 
 public class Miner implements Runnable {
 

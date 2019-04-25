@@ -5,7 +5,6 @@ import us.wirsing.drivechain.blockchain.Block;
 public class Miner implements Runnable {
 
 	protected Node node;
-	protected Block block;
 
 	public Miner(Node node) {
 		this.node = node;
@@ -15,7 +14,7 @@ public class Miner implements Runnable {
 	public void run() {
 		while (true) {
 			node.processPackets();
-			block = node.block;
+			Block block = node.block;
 			if (block.txns.size() == 0) {
 				try {
 					Thread.sleep(1000);
@@ -27,12 +26,12 @@ public class Miner implements Runnable {
 			if (!block.validateProofOfWork()) {
 				block.setNonce(block.nonce + 1);
 			} else {
-				onBlockMined();
+				onBlockMined(block);
 			}
 		}
 	}
 
-	protected void onBlockMined() {
+	protected void onBlockMined(Block block) {
 		node.onBlockMined();
 	}
 }

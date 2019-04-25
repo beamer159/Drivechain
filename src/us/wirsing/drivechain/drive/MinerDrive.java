@@ -1,5 +1,6 @@
 package us.wirsing.drivechain.drive;
 
+import us.wirsing.drivechain.blockchain.Block;
 import us.wirsing.drivechain.blockchain.node.Miner;
 
 public class MinerDrive extends Miner {
@@ -9,8 +10,8 @@ public class MinerDrive extends Miner {
 	}
 
 	@Override
-	protected void onBlockMined() {
+	protected void onBlockMined(Block block) {
 		System.out.println(((NodeDrive)node).getName() + " mined block: " + block.hash.toBase64());
-		super.onBlockMined();
+		super.onBlockMined(block);
 	}
 }

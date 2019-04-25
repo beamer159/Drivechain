@@ -47,10 +47,6 @@ public class NodeDrive extends Node {
 		return transactions(txnsUnconfirmed);
 	}
 
-	public String[] blockTransactions() {
-		return transactions(block.txns);
-	}
-
 	private String[] transactions(Set<Transaction> transactions) {
 		String[] ret = new String[transactions.size()];
 		int i = 0;
